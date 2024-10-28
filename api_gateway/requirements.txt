@@ -1,0 +1,4 @@
+Flask
+python-dotenv
+-e ../image_captioner
+-e ../tts_synthesizer

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image to Audio Description</title>
+    <!-- Bootstrap CSS (Bootstrap 5) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font (Roboto) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Include the Roboto font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fa; /* Light gray background */
+        }
+        .container {
+            background-color: #ffffff; /* White background for the form container */
+            padding: 30px;
+            border-radius: 8px;
+            margin-top: 50px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        .btn-primary {
+            background-color: #007BFF;
+            border-color: #007BFF;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28A745;
+            border-color: #28A745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+        #image-preview {
+            max-width: 100%;
+            height: auto;
+            display: none;
+            margin-top: 15px;
+            border-radius: 5px;
+        }
+        label.form-label i {
+            margin-right: 5px;
+        }
+        #loading-spinner {
+            display: none;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4 text-center">Image to Audio Description</h1>
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <form id="upload-form">
+                    <div class="mb-3">
+                        <label for="imageInput" class="form-label">
+                            <i class="fas fa-image"></i> Choose an image to upload:
+                        </label>
+                        <input class="form-control" type="file" id="imageInput" accept="image/*" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" id="submit-button">
+                        <i class="fas fa-upload"></i> Upload Image
+                    </button>
+                    <div id="loading-spinner" class="text-center mt-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </form>
+                <!-- Image Preview -->
+                <img id="image-preview" src="#" alt="Image Preview" class="img-fluid mt-3">
+                <!-- Display the caption and play button after receiving the response -->
+                <div id="result" class="mt-4" style="display: none;">
+                    <p id="caption" class="lead"></p>
+                    <button id="play-audio" class="btn btn-success w-100">
+                        <i class="fas fa-play"></i> Play Audio
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle (includes Popper.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JavaScript Code -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const uploadForm = document.getElementById('upload-form');
+            const imageInput = document.getElementById('imageInput');
+            const resultDiv = document.getElementById('result');
+            const captionParagraph = document.getElementById('caption');
+            const playAudioButton = document.getElementById('play-audio');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const submitButton = document.getElementById('submit-button');
+            const imagePreview = document.getElementById('image-preview');
+
+            let audioUrl = '';
+
+            // Display image preview when an image is selected
+            imageInput.addEventListener('change', function () {
+                if (imageInput.files && imageInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        imagePreview.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(imageInput.files[0]);
+                } else {
+                    imagePreview.style.display = 'none';
+                }
+            });
+
+            uploadForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                if (imageInput.files.length === 0) {
+                    alert('Please select an image file.');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('image', imageInput.files[0]);
+
+                // Show loading spinner and disable submit button
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                loadingSpinner.style.display = 'block';
+
+                fetch('/api/upload_image', {
+                    method: 'POST',
+                    headers: {
+                        // Include any required headers, such as authentication tokens
+                        // 'X-API-KEY': 'your_api_key_here',
+                    },
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Reset submit button and hide loading spinner
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i class="fas fa-upload"></i> Upload Image';
+                    loadingSpinner.style.display = 'none';
+
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        captionParagraph.textContent = data.caption;
+                        audioUrl = data.audio_url;
+                        resultDiv.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Reset submit button and hide loading spinner
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = '<i class="fas fa-upload"></i> Upload Image';
+                    loadingSpinner.style.display = 'none';
+                    alert('An error occurred while uploading the image.');
+                });
+            });
+
+            playAudioButton.addEventListener('click', function () {
+                if (audioUrl) {
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                } else {
+                    alert('No audio available.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
