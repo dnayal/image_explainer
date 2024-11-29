@@ -32,3 +32,6 @@ vocoder_model/
 
 .DS_Store
 
+# audio files
+audio/
+

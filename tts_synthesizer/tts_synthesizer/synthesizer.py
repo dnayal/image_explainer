@@ -1,7 +1,6 @@
 import os
 import uuid
 import torch
-# type: ignore
 from speechbrain.pretrained import Tacotron2, HIFIGAN
 
 class TextToSpeechSynthesizer:
